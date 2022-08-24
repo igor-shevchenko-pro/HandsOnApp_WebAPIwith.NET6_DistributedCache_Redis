@@ -1,0 +1,68 @@
+version: '3.4'
+
+services:
+  redis.cache:
+    image: redis
+    container_name: redis_cache
+    restart: always
+    ports:
+      - "6379:6379"
+    command: redis-server --save 20 1 --loglevel warning --requirepass eYVX7EwVmmxKPCDmwMtyKVge8oLd2t81
+    volumes: 
+      - cache:/data
+
+  redis.insight:
+    image: redislabs/redisinsight:latest
+    container_name: redis_insight
+    ports:
+      - '8001:8001'
+    volumes:
+      - redisinsight:/data
+
+  #postgres.db:
+  #  image: postgres:14.1-alpine
+  #  container_name: postgres_db
+  #  restart: always
+  #  environment:
+  #    - POSTGRES_USER=postgres
+  #    - POSTGRES_PASSWORD=postgres
+  #  ports:
+  #    - '5432:5432'
+  #  volumes: 
+  #    - db:/var/lib/postgresql/data
+  #    - ./db/init.sql:/docker-entrypoint-initdb.d/create_tables.sql
+
+  handson.api:
+    image: ${DOCKER_REGISTRY-}handsonapi
+    container_name: handson_api
+    build:
+      context: .
+      dockerfile: HandsOn.API/Dockerfile
+    depends_on:
+      - redis.cache
+      #- postgres.db
+    ports:
+      - 3000:3000
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      REDIS_HOST: redis.cache
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: eYVX7EwVmmxKPCDmwMtyKVge8oLd2t81
+      #DB_HOST: postgres.db
+      #DB_PORT: 5432
+      #DB_USER: postgres
+      #DB_PASSWORD: postgres
+      #DB_NAME: postgres
+    links:
+      - redis.cache
+      #- postgres.db
+    volumes:
+      - ./:/src
+
+volumes:
+  cache:
+    driver: local
+  redisinsight:
+    driver: local
+  #db:
+  #  driver: local
